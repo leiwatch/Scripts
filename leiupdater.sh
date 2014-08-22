@@ -1,8 +1,13 @@
 #!/bin/bash
 
-FOLDER="/media/Media Drive/Sync/CIFER Lab/test/"
+FOLDER="/home/leiwatch/sync/Updater/"
 #LOUS=("GMEI" "GEI" "IEI" "INSEE" "ISE" "KVK" "Takas")
-LOUS=("GMEI")
+LOUS=("GEI" "GMEI" "IEI" "INSEE" "ISE" "KVK")
+
+#Create backup files of old Final.csv
+cp "$FOLDER""Data/Backup/Final-2.csv" "$FOLDER""Data/Backup/Final-3.csv"
+cp "$FOLDER""Data/Backup/Final-1.csv" "$FOLDER""Data/Backup/Final-2.csv"
+cp "$FOLDER""Data/Final.csv" "$FOLDER""Data/Backup/Final-1.csv"
 
 echo "LEI Updater - "$(date +%Y%m%d) > "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
 for LOU in "${LOUS[@]}"
@@ -40,17 +45,26 @@ do
 			DAY=$(date -d$LASTDATE" 1 days" +%d)
 		fi
 
+		echo "Looking up $LOU data for $YEAR$MONTH$DAY..." >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
 		python "$FOLDER""LOUs/""$LOU""/""$LOU"".py" "$FOLDER" $YEAR$MONTH$DAY $NEWLOU >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
-		/opt/pentaho/kettle/pan.sh -file="$FOLDER""LOUs/""$LOU""/""$LOU"".ktr" -level=Minimal >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
-
-		if [ "$NEWLOU" = true ]
+		
+		#In case there are problems where the python script does not update its log, causing a loop,
+		#the following will test for if $LASTDATE is updated and escape the while loop if it is not.
+		COMPAREDATE="$LASTDATE"
+		LASTDATE=$(<"$FOLDER""LOUs/""$LOU""/""$LOU".log)
+		if [[ "$LASTDATE" == "$COMPAREDATE" ]]
 		then
-			python "$FOLDER""Scripts/leilookup.py" "$FOLDER" >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
+			break
+		else
+			/opt/pentaho/kettle/pan.sh -file="$FOLDER""LOUs/""$LOU""/""$LOU"".ktr" -level=Minimal >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
 		fi
-		python "$FOLDER""Scripts/geocoder.py" "$FOLDER" "PreFinal" >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
-		LASTDATE=$(<"$FOLDER""LOUs/""$LOU""/""$LOU".log)	
 	done
 done
 
-python "$FOLDER""Scripts/geocoder.py" "$FOLDER" "Final" >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
+if [ "$DAY" == "01" ]
+then
+	python "$FOLDER""Scripts/geocoder.py" "$FOLDER" "Final" >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
+fi
 python "$FOLDER""Scripts/datefixer.py" "$FOLDER" >> "$FOLDER""Logs/""$(date +%Y%m%d)"".log"
+
+cp "$FOLDER""Data/PreFinal.csv" "$FOLDER""Data/Final.csv"

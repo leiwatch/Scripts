@@ -5,7 +5,7 @@ import sys
 import csv
 import shutil
 
-rfile = open(sys.argv[1]+'Data/Final.csv','rb')
+rfile = open(sys.argv[1]+'Data/PreFinal.csv','rU')
 reader=csv.reader(rfile)
 ofile = open(sys.argv[1]+'Data/temp.csv','wb')
 writer=csv.writer(ofile)
@@ -105,4 +105,4 @@ print 'Number of rows changed: ' + str(changecounter)
 
 rfile.close()
 ofile.close()
-shutil.copy2(sys.argv[1]+'Data/temp.csv', sys.argv[1]+'Data/temp.csv')
+shutil.copy2(sys.argv[1]+'Data/temp.csv', sys.argv[1]+'Data/PreFinal.csv')
